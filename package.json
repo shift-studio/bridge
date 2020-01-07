@@ -1,6 +1,6 @@
 {
   "name": "@shift-studio/bridge",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Shift Bridge",
   "main": "index.js",
   "scripts": {
