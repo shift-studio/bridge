@@ -20,6 +20,8 @@ export function getUniqueClassName(selection, propName) {
         Object.keys(window.SHIFT_CLASSES_MAP).length
       }`;
       window.SHIFT_CLASSES_MAP[`${uid}${propName}`] = result;
+    } else {
+      result = window.SHIFT_CLASSES_MAP[`${uid}${propName}`];
     }
   }
 
