@@ -207,6 +207,10 @@ export default class ShiftBridgeComponent {
     this.inboundProps = flowProps;
   }
 
+  updateMasterProps(masterProps) {
+    this.masterProps = masterProps;
+  }
+
   updateState(state) {
     this.state = state;
   }

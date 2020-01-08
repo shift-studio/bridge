@@ -698,6 +698,20 @@ class ShiftBridge {
   }
 
   /**
+   * updateComponentMasterProps - Update bridge component master props
+   *
+   * @param {Object} selection
+   * @param {Object} masterProps
+   */
+  updateComponentMasterProps(selection, masterProps) {
+    const bridgeComponent = this.findComponentBySelection(selection);
+
+    if (bridgeComponent) {
+      bridgeComponent.updateMasterProps(masterProps);
+    }
+  }
+
+  /**
    * updateComponentState - Update builder component state
    *
    * @param {Object} selection
