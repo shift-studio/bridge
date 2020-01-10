@@ -5,23 +5,23 @@ import cx from 'classnames';
 import get from 'lodash/get';
 import shallowEqual from './helpers/shallow-equal';
 import getSelectionUID from './helpers/get-selection-uid';
-import ShiftBridgeComponent from './component';
+import ClutchBridgeComponent from './component';
 
 export const classnames = cx;
 
 export function getUniqueClassName(selection, propName) {
   let result;
 
-  if (typeof window !== 'undefined' && window.SHIFT_CLASSES_MAP) {
+  if (typeof window !== 'undefined' && window.CLUTCH_CLASSES_MAP) {
     const uid = getSelectionUID(selection);
 
-    if (window.SHIFT_CLASSES_MAP[`${uid}${propName}`] === undefined) {
-      result = `-shift-identifier${
-        Object.keys(window.SHIFT_CLASSES_MAP).length
+    if (window.CLUTCH_CLASSES_MAP[`${uid}${propName}`] === undefined) {
+      result = `-clutch-identifier${
+        Object.keys(window.CLUTCH_CLASSES_MAP).length
       }`;
-      window.SHIFT_CLASSES_MAP[`${uid}${propName}`] = result;
+      window.CLUTCH_CLASSES_MAP[`${uid}${propName}`] = result;
     } else {
-      result = window.SHIFT_CLASSES_MAP[`${uid}${propName}`];
+      result = window.CLUTCH_CLASSES_MAP[`${uid}${propName}`];
     }
   }
 
@@ -102,7 +102,7 @@ export function mergeProperties(propsA, ...otherProps) {
                 }
               });
             }
-          } else if (propName === 'shiftProps') {
+          } else if (propName === 'clutchProps') {
             // merge overrides
             if (prevValue && nextValue && nextValue.overrides) {
               const newOverrides = prevValue.overrides || {};
@@ -158,8 +158,8 @@ export function mergeOverrides(overrideA, ...otherOverrides) {
 export function getOverrides(props) {
   let result;
 
-  const selection = get(props, ['shiftProps', 'selection']);
-  const overrides = get(props, ['shiftProps', 'overrides']);
+  const selection = get(props, ['clutchProps', 'selection']);
+  const overrides = get(props, ['clutchProps', 'overrides']);
 
   if (selection && overrides) {
     const rootInstances = selection.rootInstances || [];
@@ -200,7 +200,7 @@ const getCircularReplacer = () => {
   };
 };
 
-export function getShiftProps(
+export function getClutchProps(
   instanceId,
   masterProps,
   flowProps,
@@ -208,7 +208,7 @@ export function getShiftProps(
   parentSelection,
   overrides,
 ) {
-  const masterSelection = get(masterProps, ['shiftProps', 'selection'], {});
+  const masterSelection = get(masterProps, ['clutchProps', 'selection'], {});
 
   // keys for replicated items
   let childrenKeys = parentSelection.keys || [];
@@ -232,7 +232,7 @@ export function getShiftProps(
   }
 
   // overrides calc
-  let childrenOverrides = get(masterProps, ['shiftProps', 'overrides']);
+  let childrenOverrides = get(masterProps, ['clutchProps', 'overrides']);
 
   if (overrides) {
     // merge this one with previous
@@ -308,7 +308,7 @@ export function propertyBind(value, suffix) {
   return result;
 }
 
-class ShiftBridge {
+class ClutchBridge {
   shallowEqual = shallowEqual;
 
   getSelectionUID = getSelectionUID;
@@ -458,7 +458,7 @@ class ShiftBridge {
         });
       }
     } catch (err) {
-      result = { type: '__SHIFT_ERROR__', message: err.message };
+      result = { type: '__CLUTCH_ERROR__', message: err.message };
     }
 
     return result;
@@ -479,7 +479,7 @@ class ShiftBridge {
     // check if previous mounted instance
     const index = this.findComponentIndexBySelection(selection);
 
-    const bridgeComponent = new ShiftBridgeComponent(
+    const bridgeComponent = new ClutchBridgeComponent(
       this,
       selection,
       parentSelection,
@@ -767,4 +767,4 @@ class ShiftBridge {
   }
 }
 
-export default new ShiftBridge();
+export default new ClutchBridge();

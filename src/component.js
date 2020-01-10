@@ -3,9 +3,9 @@ import areSelectionsEqual from './helpers/are-selections-equal';
 import getSelectionUID from './helpers/get-selection-uid';
 import shallowEqual from './helpers/shallow-equal';
 
-export default class ShiftBridgeComponent {
+export default class ClutchBridgeComponent {
   constructor(
-    shiftBridge,
+    clutchBridge,
     selection,
     parentSelection,
     masterProps,
@@ -13,7 +13,7 @@ export default class ShiftBridgeComponent {
     setState,
   ) {
     this.selection = selection;
-    this.shiftBridge = shiftBridge;
+    this.clutchBridge = clutchBridge;
     this.updateComponent = updateComponentCallback;
     this.setState = setState;
     this.reference = undefined;
@@ -29,7 +29,7 @@ export default class ShiftBridgeComponent {
     this.reference = reference;
 
     if (this.parentSelection) {
-      this.shiftBridge.registerComponentChildReference(
+      this.clutchBridge.registerComponentChildReference(
         this.parentSelection,
         this.selection,
         this.reference,
@@ -59,7 +59,7 @@ export default class ShiftBridgeComponent {
       }
 
       if (this.parentSelection) {
-        this.shiftBridge.registerComponentChildReference(
+        this.clutchBridge.registerComponentChildReference(
           this.parentSelection,
           childSelection,
           reference,
@@ -70,44 +70,44 @@ export default class ShiftBridgeComponent {
 
   // mouse over when editing
   onMouseOver = (event) => {
-    if (this.shiftBridge.editing) {
+    if (this.clutchBridge.editing) {
       event.stopPropagation();
 
-      this.shiftBridge.overComponent(this.selection);
+      this.clutchBridge.overComponent(this.selection);
     }
   };
 
   // mouse out when editing
   onMouseOut = () => {
-    if (this.shiftBridge.editing) {
-      this.shiftBridge.outComponent(this.selection);
+    if (this.clutchBridge.editing) {
+      this.clutchBridge.outComponent(this.selection);
     }
   };
 
   // open context menu (when editing only)
   onContextMenu = (event) => {
-    if (this.shiftBridge.editing) {
+    if (this.clutchBridge.editing) {
       event.stopPropagation();
       event.preventDefault();
 
-      this.shiftBridge.openComponentContextMenu(this.selection, event);
+      this.clutchBridge.openComponentContextMenu(this.selection, event);
     }
   };
 
   // select component (when editing only)
   onClick = (event) => {
-    if (this.shiftBridge.editing) {
+    if (this.clutchBridge.editing) {
       event.stopPropagation();
       event.preventDefault();
 
-      this.shiftBridge.selectComponent(this.selection);
+      this.clutchBridge.selectComponent(this.selection);
     }
   };
 
   // unlock component (when editing only)
   onDoubleClick = () => {
-    if (this.shiftBridge.editing) {
-      this.shiftBridge.unlockComponent(this.selection);
+    if (this.clutchBridge.editing) {
+      this.clutchBridge.unlockComponent(this.selection);
     }
   };
 
@@ -194,7 +194,7 @@ export default class ShiftBridgeComponent {
 
     if (!shallowEqual(this.calculatedRect, calculatedRect)) {
       this.calculatedRect = calculatedRect;
-      this.shiftBridge.updateComponentRect(this.selection, calculatedRect);
+      this.clutchBridge.updateComponentRect(this.selection, calculatedRect);
     }
   }
 
