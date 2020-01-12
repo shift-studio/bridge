@@ -190,6 +190,8 @@ const getCircularReplacer = () => {
 
     if (
       typeof value === 'object' &&
+      value !== undefined &&
+      value !== null &&
       value.constructor &&
       value.constructor.name.includes('HTML')
     ) {
