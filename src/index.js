@@ -418,7 +418,7 @@ class ClutchBridge {
         ...value,
         bind: this.processBind(
           value.bind,
-          bridgeComponent.flowProps,
+          bridgeComponent.inboundProps,
           bridgeComponent.masterProps,
         ),
       }));
