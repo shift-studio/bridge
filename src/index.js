@@ -702,6 +702,12 @@ class ClutchBridge {
    * @param {Object} inboundProps
    */
   updateComponentInboundProps(selection, inboundProps) {
+    const bridgeComponent = this.findComponentBySelection(selection);
+
+    if (bridgeComponent) {
+      bridgeComponent.updateInboundProps(inboundProps);
+    }
+
     this.sendMessage({
       type: 'updateComponentInboundProps',
       selection,
