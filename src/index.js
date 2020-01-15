@@ -212,9 +212,16 @@ export function getClutchProps(
 ) {
   const masterSelection = get(masterProps, ['clutchProps', 'selection'], {});
 
+  if (!parentSelection) {
+    // eslint-disable-next-line no-console
+    console.log(
+      'Missing parentSelection, this might happen when you dont use useClutch to get properties',
+    );
+  }
+
   // keys for replicated items
-  let childrenKeys = parentSelection.keys || [];
-  if (key !== undefined) {
+  let childrenKeys = (parentSelection && parentSelection.keys) || [];
+  if (key !== undefined && parentSelection) {
     childrenKeys = [
       ...childrenKeys,
       {
