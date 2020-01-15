@@ -425,7 +425,7 @@ class ClutchBridge {
         ...value,
         bind: this.processBind(
           value.bind,
-          bridgeComponent.flowProps,
+          bridgeComponent.inboundProps,
           bridgeComponent.masterProps,
         ),
       }));
@@ -709,6 +709,12 @@ class ClutchBridge {
    * @param {Object} inboundProps
    */
   updateComponentInboundProps(selection, inboundProps) {
+    const bridgeComponent = this.findComponentBySelection(selection);
+
+    if (bridgeComponent) {
+      bridgeComponent.updateInboundProps(inboundProps);
+    }
+
     this.sendMessage({
       type: 'updateComponentInboundProps',
       selection,
