@@ -4,24 +4,14 @@ import getSelectionUID from './helpers/get-selection-uid';
 import shallowEqual from './helpers/shallow-equal';
 
 export default class ClutchBridgeComponent {
-  constructor(
-    clutchBridge,
-    selection,
-    parentSelection,
-    masterProps,
-    updateComponentCallback,
-    setState,
-  ) {
+  constructor(clutchBridge, selection, parentSelection, masterProps) {
     this.selection = selection;
     this.clutchBridge = clutchBridge;
-    this.updateComponent = updateComponentCallback;
-    this.setState = setState;
     this.reference = undefined;
     this.childReferences = [];
     this.masterProps = masterProps;
     this.outboundProps = null;
     this.inboundProps = {};
-    this.state = undefined;
     this.parentSelection = parentSelection;
   }
 
@@ -209,16 +199,6 @@ export default class ClutchBridgeComponent {
 
   updateMasterProps(masterProps) {
     this.masterProps = masterProps;
-  }
-
-  updateState(state) {
-    this.state = state;
-  }
-
-  setComponentState(state) {
-    // udpate component state directly
-    // internal this.state will be udpated afterwards
-    this.setState(state);
   }
 
   /**

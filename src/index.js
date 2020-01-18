@@ -356,9 +356,6 @@ class ClutchBridge {
       const { type, ...data } = JSON.parse(evt.data);
 
       switch (type) {
-        case 'setComponentState':
-          this.setComponentState(data.selection, data.state);
-          break;
         case 'setEditing':
           this.setEditing(data.editing);
           break;
@@ -478,13 +475,7 @@ class ClutchBridge {
    *
    * @param {Object} selection
    */
-  registerComponent(
-    selection,
-    parentSelection,
-    masterProps,
-    updateComponentCallback,
-    setState,
-  ) {
+  registerComponent(selection, parentSelection, masterProps) {
     // check if previous mounted instance
     const index = this.findComponentIndexBySelection(selection);
 
@@ -493,8 +484,6 @@ class ClutchBridge {
       selection,
       parentSelection,
       masterProps,
-      updateComponentCallback,
-      setState,
     );
 
     if (index !== -1) {
@@ -662,30 +651,6 @@ class ClutchBridge {
     });
   }
 
-  // TODO getInitialHistoryState() {
-  //   const state = store.getState();
-  //   const canvasTab = this.canvasId && getTabFromId(this.canvasId, state);
-  //   const tabData = getTabData(canvasTab);
-  //   let historyState = {
-  //     initialEntries: ['/'],
-  //     initialIndex: 0,
-  //   };
-
-  //   if (tabData && tabData.historyState) {
-  //     historyState = tabData.historyState;
-  //   }
-
-  //   return historyState;
-  // }
-
-  setHistory({ history }) {
-    this.history = Object.assign(this.history, history);
-
-    if (this.canvasId) {
-      this.unlistenHistory = history.listen(this.persistHistory);
-    }
-  }
-
   /**
    * updateComponentOutboundProps - Update builder component inbound props
    *
@@ -737,16 +702,6 @@ class ClutchBridge {
   }
 
   /**
-   * updateComponentState - Update builder component state
-   *
-   * @param {Object} selection
-   * @param {Object} state
-   */
-  updateComponentState(selection, state) {
-    this.sendMessage({ type: 'updateComponentState', selection, state });
-  }
-
-  /**
    * updateComponentRect - Update builder component rect layout dimensions
    *
    * @param {Object} selection
@@ -754,20 +709,6 @@ class ClutchBridge {
    */
   updateComponentRect(selection, rect) {
     this.sendMessage({ type: 'updateComponentRect', selection, rect });
-  }
-
-  /**
-   * setComponentState - Sets an existing component state by selection
-   *
-   * @param {Object} selection
-   * @param {Object} state
-   */
-  setComponentState(selection, state) {
-    const bridgeComponent = this.findComponentBySelection(selection);
-
-    if (bridgeComponent) {
-      bridgeComponent.setComponentState(state);
-    }
   }
 
   setCanvasError(err) {
