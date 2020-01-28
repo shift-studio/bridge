@@ -352,18 +352,26 @@ class ClutchBridge {
   }
 
   onReceivedMessage = (evt) => {
-    if (typeof evt.data === 'string') {
-      const { type, ...data } = JSON.parse(evt.data);
+    if (
+      typeof evt.data === 'string' &&
+      process.env.NODE_ENV === 'development'
+    ) {
+      try {
+        const { type, ...data } = JSON.parse(evt.data);
 
-      switch (type) {
-        case 'setEditing':
-          this.setEditing(data.editing);
-          break;
-        case 'request-binds-resolve':
-          this.resolveBinds(data.selection, data.binds);
-          break;
-        default:
-          break;
+        switch (type) {
+          case 'setEditing':
+            this.setEditing(data.editing);
+            break;
+          case 'request-binds-resolve':
+            this.resolveBinds(data.selection, data.binds);
+            break;
+          default:
+            break;
+        }
+      } catch (err) {
+        // eslint-disable-next-line
+        console.log('Error processing incoming message', err);
       }
     }
   };
