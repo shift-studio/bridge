@@ -246,15 +246,14 @@ export function getClutchProps(
   if (overrides) {
     // merge this one with previous
     childrenOverrides = Object.assign({}, childrenOverrides);
-    const hasRoots =
-      masterSelection.rootInstances && masterSelection.rootInstances.length;
+    const hasRoots = rootInstances && rootInstances.length;
 
     Object.keys(overrides).forEach((id) => {
       let resId = id;
 
       // we need to map overrides with incoming root instances
       if (hasRoots) {
-        resId = `${masterSelection.rootInstances.join('.')}.${id}`;
+        resId = `${rootInstances.join('.')}.${id}`;
       }
 
       if (childrenOverrides[resId]) {
