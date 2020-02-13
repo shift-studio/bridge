@@ -134,7 +134,7 @@ export function mergeProperties(propsA, ...otherProps) {
 export function mergeOverrides(overrideA, ...otherOverrides) {
   const result = Object.assign({}, overrideA);
 
-  Object.keys(otherOverrides).forEach((overrideB) => {
+  otherOverrides.forEach((overrideB) => {
     if (overrideB) {
       Object.keys(overrideB).forEach((overridePath) => {
         result[overridePath] = mergeProperties(
