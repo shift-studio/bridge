@@ -327,7 +327,6 @@ class ClutchBridge {
 
     if (typeof window !== 'undefined') {
       window.addEventListener('message', this.onReceivedMessage, false);
-      window.requestAnimationFrame(this.checkComponentsRects);
 
       this.sendMessage({
         type: 'getEditing',
@@ -378,32 +377,6 @@ class ClutchBridge {
   setEditing = (editing) => {
     this.editing = editing;
   };
-
-  checkComponentsRects = () => {
-    if (typeof window !== 'undefined') {
-      this.registeredComponents.forEach((bridgeComponent) =>
-        bridgeComponent.updateRect(),
-      );
-      window.requestAnimationFrame(this.checkComponentsRects);
-    }
-  };
-
-  removeWindowListener() {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('resize', this.checkComponentsRects);
-    }
-  }
-
-  unlistenStructure() {
-    if (this.observerBody) {
-      this.observerBody.disconnect();
-      delete this.observerBody;
-    }
-  }
-
-  destroy() {
-    this.unlistenStructure();
-  }
 
   propertyBind(value, suffix) {
     let result;
@@ -580,85 +553,6 @@ class ClutchBridge {
   }
 
   /**
-   * overComponent - Sets a component as overed
-   *
-   * @param {Object} selection
-   */
-  overComponent(selection) {
-    this.sendMessage({ type: 'overComponent', selection });
-  }
-
-  /**
-   * outComponent - Unsets a component as overed
-   *
-   * @param {Object} selection
-   */
-  outComponent(selection) {
-    this.sendMessage({ type: 'outComponent', selection });
-  }
-
-  /**
-   * selectComponent - Selects a component
-   *
-   * @param {Object} selection
-   */
-  selectComponent(selection) {
-    this.sendMessage({ type: 'selectComponent', selection });
-  }
-
-  /**
-   * unlockComponent - Unlocks a component
-   *
-   * @param {Object} selection
-   */
-  unlockComponent(selection) {
-    this.sendMessage({ type: 'unlockComponent', selection });
-  }
-
-  /**
-   * registerComponentReference - Register a component dom reference
-   *
-   * @param {Object} selection
-   * @param {Object} DOMElement
-   */
-  registerComponentReference(selection, domElement) {
-    const bridgeComponent = this.findComponentBySelection(selection);
-
-    if (bridgeComponent && domElement !== null) {
-      bridgeComponent.setReference(domElement);
-    }
-  }
-
-  /**
-   * registerComponentChildReference - Register a component child dom reference
-   *
-   * @param {Object} selection
-   * @param {Object} DOMElement
-   */
-  registerComponentChildReference(selection, childSelection, domElement) {
-    const bridgeComponent = this.findComponentBySelection(selection);
-
-    if (bridgeComponent) {
-      bridgeComponent.setChildReference(childSelection, domElement);
-    }
-  }
-
-  /**
-   * openComponentContextMenu - Opens a component context menu
-   *
-   * @param {Object} selection
-   */
-  openComponentContextMenu(selection, event) {
-    // get iframe position
-    this.sendMessage({
-      type: 'openComponentContextMenu',
-      selection,
-      eventX: event.clientX,
-      eventY: event.clientY,
-    });
-  }
-
-  /**
    * updateComponentOutboundProps - Update builder component inbound props
    *
    * @param {Object} selection
@@ -706,16 +600,6 @@ class ClutchBridge {
     if (bridgeComponent) {
       bridgeComponent.updateMasterProps(masterProps);
     }
-  }
-
-  /**
-   * updateComponentRect - Update builder component rect layout dimensions
-   *
-   * @param {Object} selection
-   * @param {Object} rect
-   */
-  updateComponentRect(selection, rect) {
-    this.sendMessage({ type: 'updateComponentRect', selection, rect });
   }
 
   setCanvasError(err) {
