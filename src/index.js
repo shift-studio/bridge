@@ -1,11 +1,7 @@
 /* eslint-disable no-restricted-globals, no-eval, global-require, import/no-dynamic-require */
-import findIndex from 'lodash/findIndex';
-import find from 'lodash/find';
 import cx from 'classnames';
 import get from 'lodash/get';
-import shallowEqual from './helpers/shallow-equal';
 import getSelectionUID from './helpers/get-selection-uid';
-import ClutchBridgeComponent from './component';
 
 export const classnames = cx;
 
@@ -316,302 +312,30 @@ export function propertyBind(value, suffix) {
   return result;
 }
 
-class ClutchBridge {
-  shallowEqual = shallowEqual;
+function sendMessage(data) {
+  if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+    const dataStr = JSON.stringify(data, getCircularReplacer());
 
-  getSelectionUID = getSelectionUID;
-
-  constructor() {
-    this.registeredComponents = [];
-    this.editing = false;
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('message', this.onReceivedMessage, false);
-
-      this.sendMessage({
-        type: 'getEditing',
-      });
-    }
-  }
-
-  sendMessage(data) {
-    if (
-      process.env.NODE_ENV === 'development' &&
-      typeof window !== 'undefined'
-    ) {
-      const dataStr = JSON.stringify(data, getCircularReplacer());
-
-      if (window.opener) {
-        window.opener.postMessage(dataStr, '*');
-      } else {
-        window.parent.postMessage(dataStr, '*');
-      }
-    }
-  }
-
-  onReceivedMessage = (evt) => {
-    if (
-      typeof evt.data === 'string' &&
-      process.env.NODE_ENV === 'development'
-    ) {
-      try {
-        const { type, ...data } = JSON.parse(evt.data);
-
-        switch (type) {
-          case 'setEditing':
-            this.setEditing(data.editing);
-            break;
-          case 'request-binds-resolve':
-            this.resolveBinds(data.selection, data.binds);
-            break;
-          default:
-            break;
-        }
-      } catch (err) {
-        // eslint-disable-next-line
-        console.log('Error processing incoming message', err);
-      }
-    }
-  };
-
-  setEditing = (editing) => {
-    this.editing = editing;
-  };
-
-  propertyBind(value, suffix) {
-    let result;
-
-    try {
-      result = get(this, value);
-
-      if (result !== undefined && suffix) {
-        result += suffix;
-      }
-    } catch (err) {
-      // ignore bind error
-    }
-
-    return result;
-  }
-
-  resolveBinds(selection, binds) {
-    const bridgeComponent = this.findComponentBySelection(selection);
-
-    if (bridgeComponent) {
-      const resolvedBinds = binds.map((value) => ({
-        ...value,
-        bind: this.processBind(
-          value.bind,
-          bridgeComponent.inboundProps,
-          bridgeComponent.masterProps,
-        ),
-      }));
-
-      const response = {
-        type: 'return-binds-resolve',
-        id: this.getSelectionUID(selection),
-        binds: resolvedBinds,
-      };
-
-      this.sendMessage(response);
-    }
-  }
-
-  processBind(valueRaw, flowProps, masterProps) {
-    let result = valueRaw;
-
-    try {
-      if (valueRaw.type === 'PROP') {
-        result = get({ flowProps, masterProps }, valueRaw.value);
-
-        if (result !== undefined && valueRaw.suffix) {
-          result += valueRaw.suffix;
-        }
-      } else if (valueRaw.type === 'EXPRESSION') {
-        const bind = `(function () {
-          return ${valueRaw.value};
-        })`;
-
-        result = window.eval(bind).call({
-          flowProps,
-          masterProps,
-        });
-      } else if (valueRaw.type === 'MODULE') {
-        const bind = require(valueRaw.path).default;
-        result = window.eval(bind).call({
-          flowProps,
-          masterProps,
-        });
-      }
-    } catch (err) {
-      result = { type: '__CLUTCH_ERROR__', message: err.message };
-    }
-
-    return result;
-  }
-
-  /**
-   * registerComponent - Registers a new visible component
-   *
-   * @param {Object} selection
-   */
-  registerComponent(selection, parentSelection, masterProps) {
-    // check if previous mounted instance
-    const index = this.findComponentIndexBySelection(selection);
-
-    const bridgeComponent = new ClutchBridgeComponent(
-      this,
-      selection,
-      parentSelection,
-      masterProps,
-    );
-
-    if (index !== -1) {
-      // remove it (note that unregister will be eventually called)
-      // this happens when moving components upwards in the tree
-      // these call register of the new one before the unregister
-      this.registeredComponents.splice(index, 1);
-      bridgeComponent.prevUnregistered = true;
-    }
-
-    this.registeredComponents.unshift(bridgeComponent);
-
-    this.sendMessage({
-      type: 'registerComponent',
-      selection,
-    });
-  }
-
-  /**
-   * unregisterComponent - Unregisters a visible component
-   *
-   * @param {Object} selection
-   */
-  unregisterComponent(selection) {
-    const index = this.findComponentIndexBySelection(selection);
-
-    if (index !== -1) {
-      const bridgeComponent = this.registeredComponents[index];
-
-      if (!bridgeComponent.prevUnregistered) {
-        this.registeredComponents.splice(index, 1);
-      } else {
-        delete bridgeComponent.prevUnregistered;
-      }
-    }
-
-    this.sendMessage({ type: 'unregisterComponent', selection });
-  }
-
-  /**
-   * findComponentIndexBySelection - Finds an ide component index from a selection
-   *
-   * @param {Object} selection
-   */
-  findComponentIndexBySelection(selection) {
-    return findIndex(this.registeredComponents, (bridgeComponent) =>
-      bridgeComponent.matchesSelection(selection),
-    );
-  }
-
-  /**
-   * findComponentBySelection - Finds an ide component from a selection
-   *
-   * @param {Object} selection
-   */
-  findComponentBySelection(selection) {
-    return find(this.registeredComponents, (bridgeComponent) =>
-      bridgeComponent.matchesSelection(selection),
-    );
-  }
-
-  /**
-   * findComponentIndexBySelection - Finds an ide component index from a selection
-   *
-   * @param {Object} selection
-   */
-  findComponentsBySelection(selection, noKeys = false) {
-    return this.registeredComponents.filter((bridgeComponent) =>
-      bridgeComponent.matchesSelection(selection, noKeys),
-    );
-  }
-
-  /**
-   * changeComponentProp - Changes a component prop
-   *
-   * @param {Object} selection
-   * @param {String} propName
-   * @param {*} value
-   */
-  changeComponentProp(selection, propName, value) {
-    this.sendMessage({
-      type: 'changeComponentProp',
-      selection,
-      propName,
-      value,
-    });
-  }
-
-  /**
-   * updateComponentOutboundProps - Update builder component inbound props
-   *
-   * @param {Object} selection
-   * @param {String} area
-   * @param {Object} outboundProps
-   */
-  updateComponentOutboundProps(selection, area, outboundProps) {
-    this.sendMessage({
-      type: 'updateComponentOutboundProps',
-      selection,
-      area,
-      outboundProps,
-    });
-  }
-
-  /**
-   * updateComponentInboundProps - Update builder component inbound props
-   *
-   * @param {Object} selection
-   * @param {Object} inboundProps
-   */
-  updateComponentInboundProps(selection, inboundProps) {
-    const bridgeComponent = this.findComponentBySelection(selection);
-
-    if (bridgeComponent) {
-      bridgeComponent.updateInboundProps(inboundProps);
-    }
-
-    this.sendMessage({
-      type: 'updateComponentInboundProps',
-      selection,
-      inboundProps,
-    });
-  }
-
-  /**
-   * updateComponentMasterProps - Update bridge component master props
-   *
-   * @param {Object} selection
-   * @param {Object} masterProps
-   */
-  updateComponentMasterProps(selection, masterProps) {
-    const bridgeComponent = this.findComponentBySelection(selection);
-
-    if (bridgeComponent) {
-      bridgeComponent.updateMasterProps(masterProps);
-    }
-  }
-
-  setCanvasError(err) {
-    this.sendMessage({
-      type: 'setCanvasError',
-      err,
-    });
-
-    if (err) {
-      console.error(err); // eslint-disable-line no-console
+    if (window.opener) {
+      window.opener.postMessage(dataStr, '*');
+    } else {
+      window.parent.postMessage(dataStr, '*');
     }
   }
 }
 
-export default new ClutchBridge();
+/**
+ * changeComponentProp - Changes a component prop
+ *
+ * @param {Object} selection
+ * @param {String} propName
+ * @param {*} value
+ */
+export function changeComponentProp(selection, propName, value) {
+  sendMessage({
+    type: 'changeComponentProp',
+    selection,
+    propName,
+    value,
+  });
+}
