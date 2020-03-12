@@ -1,10 +1,38 @@
 /* eslint-disable no-restricted-globals, no-eval, global-require, import/no-dynamic-require */
 import cx from 'classnames';
 import get from 'lodash/get';
+import getCircularReplacer from './helpers/circular-replacer';
 import getSelectionUID from './helpers/get-selection-uid';
 
 export const classnames = cx;
 
+/**
+ * sendMessage - Sends a message to clutch IDE
+ *
+ * @param {Object} data
+ *
+ * @returns {undefined}
+ */
+function sendMessage(data) {
+  if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+    const dataStr = JSON.stringify(data, getCircularReplacer());
+
+    if (window.opener) {
+      window.opener.postMessage(dataStr, '*');
+    } else {
+      window.parent.postMessage(dataStr, '*');
+    }
+  }
+}
+
+/**
+ * getUniqueClassName - Gets an unique classname for a given selection and propName
+ *
+ * @param {Object} selection
+ * @param {String} propName
+ *
+ * @returns {String} unique css class name
+ */
 export function getUniqueClassName(selection, propName) {
   let result;
 
@@ -24,6 +52,14 @@ export function getUniqueClassName(selection, propName) {
   return result;
 }
 
+/**
+ * mergeProperty - Merges two property values
+ *
+ * @param {*} valueA
+ * @param {<*>} ...oterhValues
+ *
+ * @returns {*} resulting value
+ */
 export function mergeProperty(valueA, ...otherValues) {
   let result = valueA;
 
@@ -50,6 +86,14 @@ export function mergeProperty(valueA, ...otherValues) {
   return result;
 }
 
+/**
+ * mergeVariants - Merges variants maps
+ *
+ * @param {Object} variantsA
+ * @param {<Object>} ...otherVariants
+ *
+ * @returns {Array} variants list
+ */
 export function mergeVariants(variantsA, ...otherVariants) {
   let map = Object.assign({}, variantsA);
 
@@ -127,6 +171,14 @@ export function mergeProperties(propsA, ...otherProps) {
   return result;
 }
 
+/**
+ * mergeOverrides - merge properties overrides
+ *
+ * @param {Object} overridesA
+ * @param {Object} overridesB ...
+ *
+ * @returns {Object}
+ */
 export function mergeOverrides(overrideA, ...otherOverrides) {
   const result = Object.assign({}, overrideA);
 
@@ -168,45 +220,23 @@ export function getOverrides(props) {
   return result;
 }
 
-const getCircularReplacer = () => {
-  const seen = new WeakSet();
-
-  return (key, value) => {
-    if (typeof value === 'object' && value !== null) {
-      if (seen.has(value)) {
-        return undefined;
-      }
-
-      seen.add(value);
-    }
-
-    if (typeof value === 'function') {
-      return value.toString();
-    }
-
-    if (
-      typeof value === 'object' &&
-      value !== undefined &&
-      value !== null &&
-      value.constructor &&
-      value.constructor.name.includes('HTML')
-    ) {
-      return `<${value.constructor.name}>`;
-    }
-
-    return value;
-  };
-};
-
+/**
+ * getClutchProps - calculates clutch props for a given component
+ *
+ * @param {String} instanceId
+ *
+ * @return {Object|undefined}
+ */
 export function getClutchProps(
   instanceId,
   masterProps,
+  masterClutchProps,
   flowProps,
   key,
   parentSelection,
   overrides,
 ) {
-  const masterSelection = get(masterProps, ['clutchProps', 'selection'], {});
+  const masterSelection = get(masterClutchProps, ['selection'], {});
 
   if (!parentSelection) {
     // eslint-disable-next-line no-console
@@ -237,7 +267,7 @@ export function getClutchProps(
   }
 
   // overrides calc
-  let childrenOverrides = get(masterProps, ['clutchProps', 'overrides']);
+  let childrenOverrides = get(masterClutchProps, ['overrides']);
 
   if (overrides) {
     // merge this one with previous
@@ -269,7 +299,6 @@ export function getClutchProps(
       rootInstances,
       keys: childrenKeys,
     },
-    parentSelection,
     masterProps,
     flowProps,
     overrides: childrenOverrides,
@@ -293,8 +322,10 @@ export function hasVariant(variants, variant) {
 /**
  * propertyBind - calculates a property bind
  *
- * @param {*} value
+ * @param {Array} value
  * @param {String*} suffix
+ *
+ * @returns {*}
  */
 export function propertyBind(value, suffix) {
   let result;
@@ -312,16 +343,128 @@ export function propertyBind(value, suffix) {
   return result;
 }
 
-function sendMessage(data) {
-  if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
-    const dataStr = JSON.stringify(data, getCircularReplacer());
+/**
+ * renderChildren - Render children method
+ *
+ * @param {Object} selection
+ * @param {Object} flowProps
+ * @param {String} propName
+ * @param {*} value
+ * @param {?Object} newFlowProps
+ * @param {String} key
+ */
+export function renderChildren(
+  selection,
+  flowProps,
+  propName,
+  value,
+  newFlowProps,
+  key,
+) {
+  let result = value;
+  let childrenFlowProps = flowProps || {};
 
-    if (window.opener) {
-      window.opener.postMessage(dataStr, '*');
-    } else {
-      window.parent.postMessage(dataStr, '*');
-    }
+  if (newFlowProps) {
+    childrenFlowProps = Object.assign({}, childrenFlowProps, newFlowProps);
   }
+
+  if (typeof value === 'function') {
+    result = value(childrenFlowProps, key, selection);
+  } else if (value === undefined) {
+    result = null;
+  }
+
+  return result;
+}
+
+/**
+ * calculateProperties
+ *
+ * @param {Object} defaultSelection
+ * @param {Object} propsTypes
+ * @param {Object} privateProps
+ * @param {Object} props
+ */
+export function getFlowProps(props) {
+  return get(props, ['clutchProps', 'flowProps'], {});
+}
+
+/**
+ * calculateProperties
+ *
+ * @param {Object} defaultSelection
+ * @param {Object} propsTypes
+ * @param {Object} privateProps
+ * @param {Object} props
+ */
+export function calculateProperties({
+  defaultSelection,
+  propsTypes,
+  privateProps,
+  props,
+}) {
+  const overrides = getOverrides(props);
+  let resultProps = mergeProperties(privateProps, props, overrides);
+
+  // coherse
+  const clutchProps = (resultProps && resultProps.clutchProps) || {};
+  const { masterProps, flowProps } = clutchProps;
+  const selection = defaultSelection || clutchProps.selection;
+
+  // convert children to render clutch children calls
+  resultProps = Object.entries(propsTypes).reduce(
+    (acc, [propName, propType]) => {
+      const val = resultProps[propName];
+
+      if (propType === 'Children') {
+        return {
+          ...acc,
+          [propName]: renderChildren.bind(
+            this,
+            selection,
+            flowProps,
+            propName,
+            val,
+          ),
+        };
+      }
+
+      if (propType === 'Styles' && process.env.NODE_ENV !== 'production') {
+        const identifier = getUniqueClassName(selection, propName);
+
+        return {
+          ...acc,
+          [propName]: {
+            className: classnames(val && val.className, identifier),
+            style: (val && val.style) || {},
+          },
+        };
+      }
+
+      return acc;
+    },
+    resultProps,
+  );
+
+  // bind functions to this instance context
+  resultProps = Object.entries(resultProps).reduce((acc, [key, val]) => {
+    if (
+      typeof val === 'function' &&
+      (!val.prototype || !val.prototype.isReactComponent)
+    ) {
+      return {
+        ...acc,
+        [key]: val.bind({ masterProps, flowProps }),
+      };
+    }
+
+    return acc;
+  }, resultProps);
+
+  return {
+    masterProps: resultProps,
+    clutchProps,
+  };
 }
 
 /**
@@ -330,6 +473,8 @@ function sendMessage(data) {
  * @param {Object} selection
  * @param {String} propName
  * @param {*} value
+ *
+ * @returns {undefined}
  */
 export function changeComponentProp(selection, propName, value) {
   sendMessage({
