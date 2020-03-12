@@ -353,14 +353,7 @@ export function propertyBind(value, suffix) {
  * @param {?Object} newFlowProps
  * @param {String} key
  */
-export function renderChildren(
-  selection,
-  flowProps,
-  propName,
-  value,
-  newFlowProps,
-  key,
-) {
+export function renderChildren(selection, flowProps, value, newFlowProps, key) {
   let result = value;
   let childrenFlowProps = flowProps || {};
 
@@ -378,15 +371,21 @@ export function renderChildren(
 }
 
 /**
- * calculateProperties
+ * getFlowProps
  *
- * @param {Object} defaultSelection
- * @param {Object} propsTypes
- * @param {Object} privateProps
  * @param {Object} props
  */
 export function getFlowProps(props) {
   return get(props, ['clutchProps', 'flowProps'], {});
+}
+
+/**
+ * getFlowProps
+ *
+ * @param {Object} props
+ */
+export function composition(value, selection, flowProps) {
+  return renderChildren.bind(this, selection, flowProps, value);
 }
 
 /**
@@ -409,7 +408,7 @@ export function calculateProperties({
   // coherse
   const clutchProps = (resultProps && resultProps.clutchProps) || {};
   const { masterProps, flowProps } = clutchProps;
-  const selection = defaultSelection || clutchProps.selection;
+  const selection = clutchProps.selection || defaultSelection;
 
   // convert children to render clutch children calls
   resultProps = Object.entries(propsTypes).reduce(
@@ -419,13 +418,7 @@ export function calculateProperties({
       if (propType === 'Children') {
         return {
           ...acc,
-          [propName]: renderChildren.bind(
-            this,
-            selection,
-            flowProps,
-            propName,
-            val,
-          ),
+          [propName]: renderChildren.bind(this, selection, flowProps, val),
         };
       }
 
@@ -461,9 +454,14 @@ export function calculateProperties({
     return acc;
   }, resultProps);
 
+  // remove from resulting props
+  delete resultProps.clutchProps;
+
   return {
     masterProps: resultProps,
-    clutchProps,
+    clutchProps: Object.assign({}, clutchProps, {
+      selection,
+    }),
   };
 }
 
