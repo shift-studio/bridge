@@ -1,14 +1,38 @@
 /* eslint-disable no-restricted-globals, no-eval, global-require, import/no-dynamic-require */
-import findIndex from 'lodash/findIndex';
-import find from 'lodash/find';
 import cx from 'classnames';
 import get from 'lodash/get';
-import shallowEqual from './helpers/shallow-equal';
+import getCircularReplacer from './helpers/circular-replacer';
 import getSelectionUID from './helpers/get-selection-uid';
-import ClutchBridgeComponent from './component';
 
 export const classnames = cx;
 
+/**
+ * sendMessage - Sends a message to clutch IDE
+ *
+ * @param {Object} data
+ *
+ * @returns {undefined}
+ */
+function sendMessage(data) {
+  if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+    const dataStr = JSON.stringify(data, getCircularReplacer());
+
+    if (window.opener) {
+      window.opener.postMessage(dataStr, '*');
+    } else {
+      window.parent.postMessage(dataStr, '*');
+    }
+  }
+}
+
+/**
+ * getUniqueClassName - Gets an unique classname for a given selection and propName
+ *
+ * @param {Object} selection
+ * @param {String} propName
+ *
+ * @returns {String} unique css class name
+ */
 export function getUniqueClassName(selection, propName) {
   let result;
 
@@ -28,6 +52,14 @@ export function getUniqueClassName(selection, propName) {
   return result;
 }
 
+/**
+ * mergeProperty - Merges two property values
+ *
+ * @param {*} valueA
+ * @param {<*>} ...oterhValues
+ *
+ * @returns {*} resulting value
+ */
 export function mergeProperty(valueA, ...otherValues) {
   let result = valueA;
 
@@ -54,6 +86,14 @@ export function mergeProperty(valueA, ...otherValues) {
   return result;
 }
 
+/**
+ * mergeVariants - Merges variants maps
+ *
+ * @param {Object} variantsA
+ * @param {<Object>} ...otherVariants
+ *
+ * @returns {Array} variants list
+ */
 export function mergeVariants(variantsA, ...otherVariants) {
   let map = Object.assign({}, variantsA);
 
@@ -131,6 +171,14 @@ export function mergeProperties(propsA, ...otherProps) {
   return result;
 }
 
+/**
+ * mergeOverrides - merge properties overrides
+ *
+ * @param {Object} overridesA
+ * @param {Object} overridesB ...
+ *
+ * @returns {Object}
+ */
 export function mergeOverrides(overrideA, ...otherOverrides) {
   const result = Object.assign({}, overrideA);
 
@@ -172,45 +220,23 @@ export function getOverrides(props) {
   return result;
 }
 
-const getCircularReplacer = () => {
-  const seen = new WeakSet();
-
-  return (key, value) => {
-    if (typeof value === 'object' && value !== null) {
-      if (seen.has(value)) {
-        return undefined;
-      }
-
-      seen.add(value);
-    }
-
-    if (typeof value === 'function') {
-      return value.toString();
-    }
-
-    if (
-      typeof value === 'object' &&
-      value !== undefined &&
-      value !== null &&
-      value.constructor &&
-      value.constructor.name.includes('HTML')
-    ) {
-      return `<${value.constructor.name}>`;
-    }
-
-    return value;
-  };
-};
-
+/**
+ * getClutchProps - calculates clutch props for a given component
+ *
+ * @param {String} instanceId
+ *
+ * @return {Object|undefined}
+ */
 export function getClutchProps(
   instanceId,
   masterProps,
+  masterClutchProps,
   flowProps,
   key,
   parentSelection,
   overrides,
 ) {
-  const masterSelection = get(masterProps, ['clutchProps', 'selection'], {});
+  const masterSelection = get(masterClutchProps, ['selection'], {});
 
   if (!parentSelection) {
     // eslint-disable-next-line no-console
@@ -241,7 +267,7 @@ export function getClutchProps(
   }
 
   // overrides calc
-  let childrenOverrides = get(masterProps, ['clutchProps', 'overrides']);
+  let childrenOverrides = get(masterClutchProps, ['overrides']);
 
   if (overrides) {
     // merge this one with previous
@@ -273,7 +299,6 @@ export function getClutchProps(
       rootInstances,
       keys: childrenKeys,
     },
-    parentSelection,
     masterProps,
     flowProps,
     overrides: childrenOverrides,
@@ -297,8 +322,10 @@ export function hasVariant(variants, variant) {
 /**
  * propertyBind - calculates a property bind
  *
- * @param {*} value
+ * @param {Array} value
  * @param {String*} suffix
+ *
+ * @returns {*}
  */
 export function propertyBind(value, suffix) {
   let result;
@@ -316,302 +343,142 @@ export function propertyBind(value, suffix) {
   return result;
 }
 
-class ClutchBridge {
-  shallowEqual = shallowEqual;
+/**
+ * renderChildren - Render children method
+ *
+ * @param {Object} selection
+ * @param {Object} flowProps
+ * @param {String} propName
+ * @param {*} value
+ * @param {?Object} newFlowProps
+ * @param {String} key
+ */
+export function renderChildren(selection, flowProps, value, newFlowProps, key) {
+  let result = value;
+  let childrenFlowProps = flowProps || {};
 
-  getSelectionUID = getSelectionUID;
-
-  constructor() {
-    this.registeredComponents = [];
-    this.editing = false;
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('message', this.onReceivedMessage, false);
-
-      this.sendMessage({
-        type: 'getEditing',
-      });
-    }
+  if (newFlowProps) {
+    childrenFlowProps = Object.assign({}, childrenFlowProps, newFlowProps);
   }
 
-  sendMessage(data) {
-    if (
-      process.env.NODE_ENV === 'development' &&
-      typeof window !== 'undefined'
-    ) {
-      const dataStr = JSON.stringify(data, getCircularReplacer());
-
-      if (window.opener) {
-        window.opener.postMessage(dataStr, '*');
-      } else {
-        window.parent.postMessage(dataStr, '*');
-      }
-    }
+  if (typeof value === 'function') {
+    result = value(childrenFlowProps, key, selection);
+  } else if (value === undefined) {
+    result = null;
   }
 
-  onReceivedMessage = (evt) => {
-    if (
-      typeof evt.data === 'string' &&
-      process.env.NODE_ENV === 'development'
-    ) {
-      try {
-        const { type, ...data } = JSON.parse(evt.data);
-
-        switch (type) {
-          case 'setEditing':
-            this.setEditing(data.editing);
-            break;
-          case 'request-binds-resolve':
-            this.resolveBinds(data.selection, data.binds);
-            break;
-          default:
-            break;
-        }
-      } catch (err) {
-        // eslint-disable-next-line
-        console.log('Error processing incoming message', err);
-      }
-    }
-  };
-
-  setEditing = (editing) => {
-    this.editing = editing;
-  };
-
-  propertyBind(value, suffix) {
-    let result;
-
-    try {
-      result = get(this, value);
-
-      if (result !== undefined && suffix) {
-        result += suffix;
-      }
-    } catch (err) {
-      // ignore bind error
-    }
-
-    return result;
-  }
-
-  resolveBinds(selection, binds) {
-    const bridgeComponent = this.findComponentBySelection(selection);
-
-    if (bridgeComponent) {
-      const resolvedBinds = binds.map((value) => ({
-        ...value,
-        bind: this.processBind(
-          value.bind,
-          bridgeComponent.inboundProps,
-          bridgeComponent.masterProps,
-        ),
-      }));
-
-      const response = {
-        type: 'return-binds-resolve',
-        id: this.getSelectionUID(selection),
-        binds: resolvedBinds,
-      };
-
-      this.sendMessage(response);
-    }
-  }
-
-  processBind(valueRaw, flowProps, masterProps) {
-    let result = valueRaw;
-
-    try {
-      if (valueRaw.type === 'PROP') {
-        result = get({ flowProps, masterProps }, valueRaw.value);
-
-        if (result !== undefined && valueRaw.suffix) {
-          result += valueRaw.suffix;
-        }
-      } else if (valueRaw.type === 'EXPRESSION') {
-        const bind = `(function () {
-          return ${valueRaw.value};
-        })`;
-
-        result = window.eval(bind).call({
-          flowProps,
-          masterProps,
-        });
-      } else if (valueRaw.type === 'MODULE') {
-        const bind = require(valueRaw.path).default;
-        result = window.eval(bind).call({
-          flowProps,
-          masterProps,
-        });
-      }
-    } catch (err) {
-      result = { type: '__CLUTCH_ERROR__', message: err.message };
-    }
-
-    return result;
-  }
-
-  /**
-   * registerComponent - Registers a new visible component
-   *
-   * @param {Object} selection
-   */
-  registerComponent(selection, parentSelection, masterProps) {
-    // check if previous mounted instance
-    const index = this.findComponentIndexBySelection(selection);
-
-    const bridgeComponent = new ClutchBridgeComponent(
-      this,
-      selection,
-      parentSelection,
-      masterProps,
-    );
-
-    if (index !== -1) {
-      // remove it (note that unregister will be eventually called)
-      // this happens when moving components upwards in the tree
-      // these call register of the new one before the unregister
-      this.registeredComponents.splice(index, 1);
-      bridgeComponent.prevUnregistered = true;
-    }
-
-    this.registeredComponents.unshift(bridgeComponent);
-
-    this.sendMessage({
-      type: 'registerComponent',
-      selection,
-    });
-  }
-
-  /**
-   * unregisterComponent - Unregisters a visible component
-   *
-   * @param {Object} selection
-   */
-  unregisterComponent(selection) {
-    const index = this.findComponentIndexBySelection(selection);
-
-    if (index !== -1) {
-      const bridgeComponent = this.registeredComponents[index];
-
-      if (!bridgeComponent.prevUnregistered) {
-        this.registeredComponents.splice(index, 1);
-      } else {
-        delete bridgeComponent.prevUnregistered;
-      }
-    }
-
-    this.sendMessage({ type: 'unregisterComponent', selection });
-  }
-
-  /**
-   * findComponentIndexBySelection - Finds an ide component index from a selection
-   *
-   * @param {Object} selection
-   */
-  findComponentIndexBySelection(selection) {
-    return findIndex(this.registeredComponents, (bridgeComponent) =>
-      bridgeComponent.matchesSelection(selection),
-    );
-  }
-
-  /**
-   * findComponentBySelection - Finds an ide component from a selection
-   *
-   * @param {Object} selection
-   */
-  findComponentBySelection(selection) {
-    return find(this.registeredComponents, (bridgeComponent) =>
-      bridgeComponent.matchesSelection(selection),
-    );
-  }
-
-  /**
-   * findComponentIndexBySelection - Finds an ide component index from a selection
-   *
-   * @param {Object} selection
-   */
-  findComponentsBySelection(selection, noKeys = false) {
-    return this.registeredComponents.filter((bridgeComponent) =>
-      bridgeComponent.matchesSelection(selection, noKeys),
-    );
-  }
-
-  /**
-   * changeComponentProp - Changes a component prop
-   *
-   * @param {Object} selection
-   * @param {String} propName
-   * @param {*} value
-   */
-  changeComponentProp(selection, propName, value) {
-    this.sendMessage({
-      type: 'changeComponentProp',
-      selection,
-      propName,
-      value,
-    });
-  }
-
-  /**
-   * updateComponentOutboundProps - Update builder component inbound props
-   *
-   * @param {Object} selection
-   * @param {String} area
-   * @param {Object} outboundProps
-   */
-  updateComponentOutboundProps(selection, area, outboundProps) {
-    this.sendMessage({
-      type: 'updateComponentOutboundProps',
-      selection,
-      area,
-      outboundProps,
-    });
-  }
-
-  /**
-   * updateComponentInboundProps - Update builder component inbound props
-   *
-   * @param {Object} selection
-   * @param {Object} inboundProps
-   */
-  updateComponentInboundProps(selection, inboundProps) {
-    const bridgeComponent = this.findComponentBySelection(selection);
-
-    if (bridgeComponent) {
-      bridgeComponent.updateInboundProps(inboundProps);
-    }
-
-    this.sendMessage({
-      type: 'updateComponentInboundProps',
-      selection,
-      inboundProps,
-    });
-  }
-
-  /**
-   * updateComponentMasterProps - Update bridge component master props
-   *
-   * @param {Object} selection
-   * @param {Object} masterProps
-   */
-  updateComponentMasterProps(selection, masterProps) {
-    const bridgeComponent = this.findComponentBySelection(selection);
-
-    if (bridgeComponent) {
-      bridgeComponent.updateMasterProps(masterProps);
-    }
-  }
-
-  setCanvasError(err) {
-    this.sendMessage({
-      type: 'setCanvasError',
-      err,
-    });
-
-    if (err) {
-      console.error(err); // eslint-disable-line no-console
-    }
-  }
+  return result;
 }
 
-export default new ClutchBridge();
+/**
+ * getFlowProps
+ *
+ * @param {Object} props
+ */
+export function getFlowProps(props) {
+  return get(props, ['clutchProps', 'flowProps'], {});
+}
+
+/**
+ * getFlowProps
+ *
+ * @param {Object} props
+ */
+export function composition(value, selection, flowProps) {
+  return renderChildren.bind(this, selection, flowProps, value);
+}
+
+/**
+ * calculateProperties
+ *
+ * @param {Object} defaultSelection
+ * @param {Object} propsTypes
+ * @param {Object} privateProps
+ * @param {Object} props
+ */
+export function calculateProperties({
+  defaultSelection,
+  propsTypes,
+  privateProps,
+  props,
+}) {
+  const overrides = getOverrides(props);
+  let resultProps = mergeProperties(privateProps, props, overrides);
+
+  // coherse
+  const clutchProps = (resultProps && resultProps.clutchProps) || {};
+  const { masterProps, flowProps } = clutchProps;
+  const selection = clutchProps.selection || defaultSelection;
+
+  // convert children to render clutch children calls
+  resultProps = Object.entries(propsTypes).reduce(
+    (acc, [propName, propType]) => {
+      const val = resultProps[propName];
+
+      if (propType === 'Children') {
+        return {
+          ...acc,
+          [propName]: renderChildren.bind(this, selection, flowProps, val),
+        };
+      }
+
+      if (propType === 'Styles' && process.env.NODE_ENV !== 'production') {
+        const identifier = getUniqueClassName(selection, propName);
+
+        return {
+          ...acc,
+          [propName]: {
+            className: classnames(val && val.className, identifier),
+            style: (val && val.style) || {},
+          },
+        };
+      }
+
+      return acc;
+    },
+    resultProps,
+  );
+
+  // bind functions to this instance context
+  resultProps = Object.entries(resultProps).reduce((acc, [key, val]) => {
+    if (
+      typeof val === 'function' &&
+      (!val.prototype || !val.prototype.isReactComponent)
+    ) {
+      return {
+        ...acc,
+        [key]: val.bind({ masterProps, flowProps }),
+      };
+    }
+
+    return acc;
+  }, resultProps);
+
+  // remove from resulting props
+  delete resultProps.clutchProps;
+
+  return {
+    masterProps: resultProps,
+    clutchProps: Object.assign({}, clutchProps, {
+      selection,
+    }),
+  };
+}
+
+/**
+ * changeComponentProp - Changes a component prop
+ *
+ * @param {Object} selection
+ * @param {String} propName
+ * @param {*} value
+ *
+ * @returns {undefined}
+ */
+export function changeComponentProp(selection, propName, value) {
+  sendMessage({
+    type: 'changeComponentProp',
+    selection,
+    propName,
+    value,
+  });
+}
