@@ -326,7 +326,6 @@ class ClutchBridge {
     this.editing = false;
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('message', this.onReceivedMessage, false);
       window.requestAnimationFrame(this.checkComponentsRects);
 
       this.sendMessage({
@@ -349,35 +348,6 @@ class ClutchBridge {
       }
     }
   }
-
-  onReceivedMessage = (evt) => {
-    if (
-      typeof evt.data === 'string' &&
-      process.env.NODE_ENV === 'development'
-    ) {
-      try {
-        const { type, ...data } = JSON.parse(evt.data);
-
-        switch (type) {
-          case 'setEditing':
-            this.setEditing(data.editing);
-            break;
-          case 'request-binds-resolve':
-            this.resolveBinds(data.selection, data.binds);
-            break;
-          default:
-            break;
-        }
-      } catch (err) {
-        // eslint-disable-next-line
-        console.log('Error processing incoming message', err);
-      }
-    }
-  };
-
-  setEditing = (editing) => {
-    this.editing = editing;
-  };
 
   checkComponentsRects = () => {
     if (typeof window !== 'undefined') {
@@ -416,62 +386,6 @@ class ClutchBridge {
       }
     } catch (err) {
       // ignore bind error
-    }
-
-    return result;
-  }
-
-  resolveBinds(selection, binds) {
-    const bridgeComponent = this.findComponentBySelection(selection);
-
-    if (bridgeComponent) {
-      const resolvedBinds = binds.map((value) => ({
-        ...value,
-        bind: this.processBind(
-          value.bind,
-          bridgeComponent.inboundProps,
-          bridgeComponent.masterProps,
-        ),
-      }));
-
-      const response = {
-        type: 'return-binds-resolve',
-        id: this.getSelectionUID(selection),
-        binds: resolvedBinds,
-      };
-
-      this.sendMessage(response);
-    }
-  }
-
-  processBind(valueRaw, flowProps, masterProps) {
-    let result = valueRaw;
-
-    try {
-      if (valueRaw.type === 'PROP') {
-        result = get({ flowProps, masterProps }, valueRaw.value);
-
-        if (result !== undefined && valueRaw.suffix) {
-          result += valueRaw.suffix;
-        }
-      } else if (valueRaw.type === 'EXPRESSION') {
-        const bind = `(function () {
-          return ${valueRaw.value};
-        })`;
-
-        result = window.eval(bind).call({
-          flowProps,
-          masterProps,
-        });
-      } else if (valueRaw.type === 'MODULE') {
-        const bind = require(valueRaw.path).default;
-        result = window.eval(bind).call({
-          flowProps,
-          masterProps,
-        });
-      }
-    } catch (err) {
-      result = { type: '__CLUTCH_ERROR__', message: err.message };
     }
 
     return result;
