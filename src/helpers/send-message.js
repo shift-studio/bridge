@@ -1,4 +1,4 @@
-import getCircularReplacer from './helpers/circular-replacer';
+import getCircularReplacer from './circular-replacer';
 
 /**
  * sendMessage - Sends a message to clutch IDE
