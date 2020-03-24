@@ -241,5 +241,5 @@ export function getInstanceProps({
     return acc;
   }, resultProps);
 
-  return resultProps;
+  return { ...resultProps, clutchProps: instanceClutchProps };
 }
