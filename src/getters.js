@@ -223,7 +223,7 @@ export function getInstanceProps({
   let resultProps = {};
 
   [...(instanceOverrides || []), props].forEach((propsFn) => {
-    resultProps = propsFn(resultProps);
+    resultProps = propsFn(resultProps, instanceClutchProps.selection);
   });
 
   // bind functions to this instance context
