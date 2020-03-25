@@ -175,11 +175,11 @@ export function getClutchProps(
  *
  * @return {Object|undefined}
  */
-function getOverrides(props) {
+function getOverrides(clutchProps) {
   let result;
 
-  const selection = get(props, ['clutchProps', 'selection']);
-  const overrides = get(props, ['clutchProps', 'overrides']);
+  const selection = get(clutchProps, ['selection']);
+  const overrides = get(clutchProps, ['overrides']);
 
   if (selection && overrides) {
     const rootInstances = selection.rootInstances || [];
