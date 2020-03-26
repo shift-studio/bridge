@@ -29,7 +29,9 @@ export function renderChildren(selection, flowProps, value, newFlowProps, key) {
  * childrenFn
  */
 export function childrenFn(value, selection, flowProps) {
-  return renderChildren.bind(this, selection, flowProps, value);
+  return value === undefined
+    ? undefined
+    : renderChildren.bind(this, selection, flowProps, value);
 }
 
 /**
