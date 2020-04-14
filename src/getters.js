@@ -100,6 +100,7 @@ export function getClutchProps(
   instanceId,
   masterClutchProps,
   flowProps,
+  masterProps,
   key,
   parentSelection,
   overrides,
@@ -164,6 +165,7 @@ export function getClutchProps(
       keys: childrenKeys,
     },
     flowProps,
+    masterProps,
     overrides: childrenOverrides,
   };
 }
@@ -211,6 +213,7 @@ export function getInstanceProps({
     id,
     masterClutchProps,
     flowProps,
+    masterProps,
     key,
     parentSelection,
     overrides,
