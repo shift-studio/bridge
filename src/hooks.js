@@ -49,18 +49,19 @@ export const useReport = (props) => {
   const report = useCallback(
     (rs, instanceId, propName, attributes, variables) => {
       if (inspector) {
+        const reportId = reportsCounter;
+        reportsCounter += 1;
+
         inspector.report(
           ownerScopeId,
-          reportsCounter,
+          reportId,
           instanceId,
           propName,
           attributes,
           variables,
         );
 
-        reportsCounter += 1;
-
-        return combineRs(rs, reportsCounter);
+        return combineRs(rs, reportId);
       }
 
       return null;
