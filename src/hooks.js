@@ -30,8 +30,8 @@ if (typeof window !== 'undefined' && window.__CLUTCH_INSPECTOR__) {
 export const useReport = (props) => {
   let ownerScopeId;
   let reportsCounter = 0;
-  const ownerDebugKey = props['data-d'];
-  const ownerRootInstances = ownerDebugKey
+  const ownerDebugKey = props?.['data-d'];
+  const ownerRootInstances = ownerDebugKey?.rootInstances
     ? [...ownerDebugKey.rootInstances, ownerDebugKey.id]
     : [];
 
