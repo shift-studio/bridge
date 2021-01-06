@@ -1,7 +1,7 @@
 /* eslint-disable no-underscore-dangle */
-import { useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 
-let instanceCounter = 0;
+let instanceCounter = 1;
 
 function combineRs(rs, reportId) {
   return [...(rs || []), reportId];
@@ -28,23 +28,26 @@ if (typeof window !== 'undefined' && window.__CLUTCH_INSPECTOR__) {
 
 // eslint-disable-next-line import/prefer-default-export
 export const useReport = (props) => {
-  let ownerScopeId;
+  const ownerScopeIdRef = useRef(null);
   let reportsCounter = 0;
   const ownerDebugKey = props?.['data-d'];
   const ownerRootInstances = ownerDebugKey?.rootInstances
     ? [...ownerDebugKey.rootInstances, ownerDebugKey.id]
     : [];
 
-  useEffect(() => {
-    ownerScopeId = instanceCounter;
+  if (!ownerScopeIdRef.current) {
+    ownerScopeIdRef.current = instanceCounter;
     instanceCounter += 1;
+  }
 
-    return () => {
-      if (inspector) {
-        inspector.dropReports(ownerScopeId);
+  useEffect(
+    () => () => {
+      if (inspector && ownerScopeIdRef.current) {
+        inspector.dropReports(ownerScopeIdRef.current);
       }
-    };
-  }, []);
+    },
+    [],
+  );
 
   const report = useCallback(
     (rs, instanceId, propName, attributes, variables) => {
@@ -53,7 +56,7 @@ export const useReport = (props) => {
         reportsCounter += 1;
 
         inspector.report(
-          ownerScopeId,
+          ownerScopeIdRef.current,
           reportId,
           instanceId,
           propName,
@@ -71,7 +74,7 @@ export const useReport = (props) => {
 
   const getDebugKey = useCallback(
     (rs, instanceId) =>
-      new DebugKey(instanceId, ownerRootInstances, ownerScopeId, rs),
+      new DebugKey(instanceId, ownerRootInstances, ownerScopeIdRef.current, rs),
     [],
   );
 
