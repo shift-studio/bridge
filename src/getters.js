@@ -1,5 +1,4 @@
 import get from 'lodash/get';
-import getSelectionUID from './helpers/get-selection-uid';
 
 /**
  * getUniqueClassName - Gets an unique classname for a given selection and propName
@@ -9,20 +8,15 @@ import getSelectionUID from './helpers/get-selection-uid';
  *
  * @returns {String} unique css class name
  */
-export function getUniqueClassName(selection, propName) {
+let classNamesCounter = 0;
+export function getUniqueClassName() {
   let result;
 
-  if (typeof window !== 'undefined' && window.CLUTCH_CLASSES_MAP) {
-    const uid = getSelectionUID(selection);
+  // eslint-disable-next-line
+  if (typeof window !== 'undefined' && window.__CLUTCH_INSPECTOR__) {
+    result = `-clutch-identifier${classNamesCounter}`;
 
-    if (window.CLUTCH_CLASSES_MAP[`${uid}${propName}`] === undefined) {
-      result = `-clutch-identifier${
-        Object.keys(window.CLUTCH_CLASSES_MAP).length
-      }`;
-      window.CLUTCH_CLASSES_MAP[`${uid}${propName}`] = result;
-    } else {
-      result = window.CLUTCH_CLASSES_MAP[`${uid}${propName}`];
-    }
+    classNamesCounter += 1;
   }
 
   return result;
