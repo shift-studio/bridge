@@ -73,11 +73,11 @@ export function hasVariant(variants, variant) {
  *
  * @returns {*}
  */
-export function propertyBind(value, suffix) {
+export function propertyBind(obj, value, suffix) {
   let result;
 
   try {
-    result = get(this, value);
+    result = get(obj, value);
 
     if (result !== undefined && suffix) {
       result += suffix;
