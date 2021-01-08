@@ -55,12 +55,26 @@ export const useReport = (props) => {
         const reportId = reportsCounter;
         reportsCounter += 1;
 
+        // remove data-d from attributes
+        let reportAttributes = attributes;
+
+        if (
+          rs === null &&
+          attributes &&
+          typeof attributes === 'object' &&
+          !Array.isArray(attributes) &&
+          attributes !== null
+        ) {
+          reportAttributes = { ...attributes };
+          delete reportAttributes['data-d'];
+        }
+
         inspector.report(
           ownerScopeIdRef.current,
           reportId,
           instanceId,
           propName,
-          attributes,
+          reportAttributes,
           variables,
         );
 
