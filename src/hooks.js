@@ -40,14 +40,17 @@ export const useReport = (props) => {
     instanceCounter += 1;
   }
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    if (inspector && inspector.cancelDropReports && ownerScopeIdRef.current) {
+      inspector.cancelDropReports(ownerScopeIdRef.current);
+    }
+
+    return () => {
       if (inspector && ownerScopeIdRef.current) {
         inspector.dropReports(ownerScopeIdRef.current);
       }
-    },
-    [],
-  );
+    };
+  }, []);
 
   const report = useCallback(
     (rs, instanceId, propName, attributes, variables) => {
