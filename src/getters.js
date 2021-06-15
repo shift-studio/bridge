@@ -60,6 +60,25 @@ export function hasVariant(variants, variant) {
 }
 
 /**
+ * tryCatch - tries to run the passed fn
+ *
+ * @param {Function} fn
+ *
+ * @returns {*}
+ */
+export function tryCatch(fn) {
+  let result;
+
+  try {
+    result = fn();
+  } catch (err) {
+    // ignore error
+  }
+
+  return result;
+}
+
+/**
  * propertyBind - calculates a property bind
  *
  * @param {Array} value
